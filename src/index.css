@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", "Georgia", "STKaiti", "KaiTi", ui-serif, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #020408; /* Deep cosmic dark */
+  color: white;
+}
+
+#root {
+  width: 100dvw;
+  height: 100dvh;
+}
+
+@media screen and (max-aspect-ratio: 1/1) {
+  #root {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100dvh;
+    height: 100dvw;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+}
+
+/* Subtle glow for the text */
+.text-glow {
+  text-shadow: 0 0 20px rgba(136, 204, 255, 0.6), 0 0 40px rgba(136, 204, 255, 0.4);
+}
+
+@keyframes fadeZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-zoom {
+  animation: fadeZoomIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

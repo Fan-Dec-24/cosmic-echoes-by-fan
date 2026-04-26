@@ -1,0 +1,8 @@
+{
+  "name": "Cosmic Echoes",
+  "description": "An interactive 3D particle system that reveals answers based on hand gestures using Three.js and MediaPipe.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
