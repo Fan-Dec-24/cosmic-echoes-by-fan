@@ -16,7 +16,15 @@ const ANSWERS = [
   "去期待，但别执着", 
   "答案是“不”，但那是好事", 
   "你所害怕的那个结果不会发生", 
-  "不是该放弃的时候"
+  "不是该放弃的时候",
+  "你的勇气正在星系的另一端凝结成光",
+  "允许自己迷路，宇宙本来就没有路标",
+  "风已经吹动了，你还没感觉到自己的翎羽",
+  "看见那片云了吗？它也不知道自己要变成雨",
+  "你渴望的，也正在奔向你",
+  "所有的漫游，最后都会抵达",
+  "熵增不可逆",
+  "像流星切过夜空般果断，不要回头"
 ];
 
 export default function App() {
@@ -31,6 +39,29 @@ export default function App() {
   const [appState, setAppState] = useState<'idle' | 'gathering' | 'revealing'>('idle');
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  useEffect(() => {
+    // Attempt to play audio on first user interaction
+    const handleInteract = () => {
+      setHasInteracted(true);
+      if (audioRef.current && audioRef.current.paused) {
+        audioRef.current.volume = 0.5;
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+    };
+    
+    document.addEventListener('click', handleInteract, { once: true });
+    document.addEventListener('touchstart', handleInteract, { once: true });
+
+    return () => {
+      document.removeEventListener('click', handleInteract);
+      document.removeEventListener('touchstart', handleInteract);
+    };
+  }, []);
 
   const gatherStartTimeRef = useRef<number>(0);
   const revealStartTimeRef = useRef<number>(0);
@@ -130,7 +161,8 @@ export default function App() {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen().catch(() => {});
       try {
-        if (screen.orientation && screen.orientation.lock) {
+        if (screen.orientation && 'lock' in screen.orientation) {
+          // @ts-ignore
           await screen.orientation.lock('landscape').catch(() => {});
         }
       } catch (e) {}
@@ -149,6 +181,15 @@ export default function App() {
         <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-indigo-900/10 rounded-full blur-[100px]"></div>
       </div>
 
+      {/* Touch to start prompt overlay */}
+      {!hasInteracted && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none transition-opacity duration-1000">
+          <p className="text-white/80 text-sm tracking-[0.4em] font-light uppercase animate-pulse">
+            Touch to awaken the cosmos
+          </p>
+        </div>
+      )}
+
       {/* Particle Canvas Layer */}
       <canvas ref={canvasRef} className="absolute inset-0 z-10 opacity-70 pointer-events-none" />
       
@@ -162,46 +203,63 @@ export default function App() {
       />
 
       {/* Header UI */}
-      <header className="absolute top-12 w-full flex flex-col items-center z-20 pointer-events-none">
-        <h1 className="text-xs tracking-[0.6em] font-light opacity-50 uppercase mb-2">Cosmic Echoes</h1>
-        <div className="h-[1px] w-12 bg-white/20"></div>
+      <header className="absolute top-10 sm:top-16 w-full flex flex-col items-center z-20 pointer-events-none">
+        <h1 className="text-sm sm:text-base tracking-[0.6em] font-extralight text-cyan-50 opacity-60 uppercase mb-3 drop-shadow-lg">Cosmic Echoes</h1>
+        <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent"></div>
       </header>
 
       {/* Main Answer Display */}
-      <main className="absolute inset-0 flex items-center justify-center z-30 px-6 sm:px-24 text-center pointer-events-none">
+      <main className="absolute inset-0 flex items-center justify-center z-30 px-8 sm:px-32 pointer-events-none">
         {appState === 'revealing' && (
-          <div className="animate-fade-zoom inline-block">
-            <p className="text-4xl md:text-5xl font-serif italic text-blue-50 leading-relaxed font-light tracking-wide px-4">
-              {currentAnswer}
-            </p>
-            <div className="mt-8 flex justify-center w-full px-4">
-              <div className="h-[1px] w-full max-w-sm bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
+          <div className="animate-fade-zoom w-full max-w-3xl flex flex-col items-center mt-8">
+            <div className="relative">
+              {/* Subtle glowing brackets to frame the text */}
+              <span className="absolute -left-8 sm:-left-16 top-0 text-cyan-500/30 text-5xl sm:text-7xl font-serif font-extralight select-none">「</span>
+              
+              <p 
+                className="text-2xl sm:text-3xl md:text-4xl font-serif text-cyan-50 leading-loose font-light tracking-[0.1em] text-center"
+                style={{ 
+                  textShadow: '0 0 20px rgba(164, 242, 255, 0.4), 0 0 10px rgba(164, 242, 255, 0.2)',
+                  wordBreak: 'keep-all' 
+                }}
+              >
+                {currentAnswer}
+              </p>
+
+              <span className="absolute -right-8 sm:-right-16 bottom-0 text-cyan-500/30 text-5xl sm:text-7xl font-serif font-extralight select-none">」</span>
+            </div>
+
+            <div className="mt-16 flex justify-center w-full px-4">
+              <div className="h-[1px] w-full max-w-md bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent shadow-[0_0_15px_rgba(164,242,255,0.4)]"></div>
             </div>
           </div>
         )}
       </main>
 
       {/* Interaction Prompt */}
-      <footer className="absolute bottom-8 sm:bottom-12 w-full flex flex-col items-center z-20 pointer-events-none">
-        <div className="flex items-center space-x-3 mb-6 opacity-40">
-          <div className="w-10 h-[1px] bg-white"></div>
-          <span className="text-[10px] tracking-widest uppercase">握紧双拳，释放答案</span>
-          <div className="w-10 h-[1px] bg-white"></div>
+      <footer className="absolute bottom-6 sm:bottom-10 w-full flex flex-col items-center z-20 pointer-events-none">
+        <div className="flex items-center space-x-4 mb-6 opacity-60">
+          <div className="w-12 sm:w-16 h-[1px] bg-gradient-to-r from-transparent to-cyan-200/60"></div>
+          <span className="text-[9px] sm:text-[11px] tracking-[0.4em] text-cyan-100 font-extralight">握 紧 双 拳 ， 释 放 答 案</span>
+          <div className="w-12 sm:w-16 h-[1px] bg-gradient-to-l from-transparent to-cyan-200/60"></div>
         </div>
         
-        <div className="flex space-x-6 sm:space-x-8 items-center pointer-events-auto">
-          <div className="text-[9px] tracking-tighter opacity-30 flex items-center">
-            <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isCameraActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        <div className="flex space-x-6 sm:space-x-12 items-center pointer-events-auto">
+          <div className="text-[8px] sm:text-[9px] tracking-widest text-cyan-100/30 flex items-center font-extralight uppercase mt-1">
+            <span className={`w-1.5 h-1.5 rounded-full mr-2 shadow-[0_0_6px_currentColor] ${isCameraActive ? 'bg-cyan-400 text-cyan-400' : 'bg-red-500 text-red-500'}`}></span>
             CAMERA ACTIVE
           </div>
           <button 
             onClick={toggleFullscreen} 
-            className="px-4 py-1.5 border border-white/20 rounded-full text-[10px] tracking-widest hover:bg-white/10 transition-colors uppercase cursor-pointer"
+            className="px-5 py-1.5 border border-cyan-200/20 rounded-full text-[9px] sm:text-[10px] tracking-widest text-cyan-100/40 hover:bg-cyan-900/30 hover:border-cyan-400/50 hover:text-cyan-50 transition-all duration-300 uppercase cursor-pointer"
           >
-            Fullscreen
+            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           </button>
-          <div className="text-[9px] tracking-tighter opacity-30">
-            SYSTEM READY
+          
+          <audio ref={audioRef} src="/bgm.mp3" loop preload="auto" style={{ display: 'none' }} />
+
+          <div className="text-[8px] sm:text-[9px] tracking-widest text-cyan-100/30 font-extralight uppercase mt-1">
+            CREATED BY FAN
           </div>
         </div>
       </footer>

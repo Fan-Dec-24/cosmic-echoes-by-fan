@@ -15,6 +15,7 @@ export class ParticleEngine {
   private basePositions: Float32Array;
   private velocities: Float32Array;
   private randoms: Float32Array;
+  private colors: Float32Array;
   
   public targetX: number = 0;
   public targetY: number = 0;
@@ -32,8 +33,8 @@ export class ParticleEngine {
     }
   }
   
-  public gatherShape: 'sphere' | 'heart' | 'dna' | 'lemniscate' | 'rose' | 'snowflake' = 'sphere';
-  private shapeCycle: Array<'sphere' | 'heart' | 'dna' | 'lemniscate' | 'rose' | 'snowflake'> = ['sphere', 'heart', 'dna', 'lemniscate', 'rose', 'snowflake'];
+  public gatherShape: 'sphere' | 'heart' | 'dna' | 'lemniscate' | 'rose' | 'snowflake' | 'vortex' = 'sphere';
+  private shapeCycle: Array<'sphere' | 'heart' | 'dna' | 'lemniscate' | 'rose' | 'snowflake' | 'vortex'> = ['sphere', 'heart', 'dna', 'lemniscate', 'rose', 'snowflake', 'vortex'];
   private currentShapeIndex = 0;
 
   private time = 0;
@@ -65,6 +66,7 @@ export class ParticleEngine {
     this.basePositions = new Float32Array(this.count * 3);
     this.velocities = new Float32Array(this.count * 3);
     this.randoms = new Float32Array(this.count);
+    this.colors = new Float32Array(this.count * 3);
 
     // Initial cosmic nebula shape (galaxy spiral)
     for (let i = 0; i < this.count; i++) {
@@ -98,6 +100,7 @@ export class ParticleEngine {
 
     this.geometry = new THREE.BufferGeometry();
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
+    this.geometry.setAttribute('color', new THREE.BufferAttribute(this.colors, 3));
     this.geometry.setAttribute('aRandom', new THREE.BufferAttribute(this.randoms, 1));
     // velocities and basePositions are used in logic, not directly sent to GPU to save bandwidth
 
@@ -121,8 +124,8 @@ export class ParticleEngine {
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      color: 0xaaccff, // Soft blue-white
-      opacity: 0.8,
+      vertexColors: true,
+      opacity: 0.9,
     });
 
     this.points = new THREE.Points(this.geometry, this.material);
@@ -272,6 +275,9 @@ export class ParticleEngine {
 
     const posAttr = this.geometry.attributes.position;
     const posArr = posAttr.array as Float32Array;
+    const colorAttr = this.geometry.attributes.color;
+    const colorArr = colorAttr.array as Float32Array;
+    const tempColor = new THREE.Color();
 
     for (let i = 0; i < this.count; i++) {
       const i3 = i * 3;
@@ -322,176 +328,431 @@ export class ParticleEngine {
          const a = 18; // Base scale (increased)
          
          if (this.gatherShape === 'sphere') {
-             // 球状星云
-             const r = rand * 18 + (this.randoms[(i+1)%this.count] * 4);
-             const theta = rand * Math.PI * 2 + this.time * (1 + rand);
-             const phi = Math.acos(2 * rand - 1);
-             x = r * Math.sin(phi) * Math.cos(theta);
-             y = r * Math.sin(phi) * Math.sin(theta);
-             z = r * Math.cos(phi);
-         } else if (this.gatherShape === 'heart') {
-             // 爱心星团 (Refined 3D Heart Cluster with softer, warmer volume)
-             const t = rand * Math.PI * 2;
-             const fill = Math.pow(this.randoms[(i+1)%this.count], 0.5) * 0.8 + 0.2; 
-             const pulse = 1 + Math.sin(this.time * 2.5 - fill * 3) * 0.06; // Softer, more organic heartbeat
-             
-             x = 16 * Math.pow(Math.sin(t), 3) * fill * pulse * 1.1;
-             y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * fill * pulse * 1.1;
-             z = (this.randoms[(i+2)%this.count] - 0.5) * 14 * Math.pow((1 - fill), 1.5); // More rounded at the core
-         } else if (this.gatherShape === 'dna') {
-             // 优化后的现代 DNA 双链与碱基对结构
-             const numTurns = 3; // 螺旋圈数
-             const radius = 6; // 螺旋半径 (适度缩小)
-             const heightScale = 3.0; // 高度缩放 (适度缩小)
-             const tSpan = Math.PI * 2 * numTurns;
-             const twist = this.time * 1.5; // 持续旋转运动
-             
-             // 随机决定粒子分布：主链 vs 碱基对 (70%主链，30%碱基对)
-             const partType = this.randoms[(i+2)%this.count];
+             // 量子星核 (Quantum Sphere Core) - 分层的能量球体与轨道
+             const partType = this.randoms[(i+1)%this.count];
+             const isPortrait = this.camera.aspect < 1;
+             const scaleAdjust = isPortrait ? this.camera.aspect * 1.4 : 0.9;
+             const R = 15 * scaleAdjust;
              
              let ox = 0, oy = 0, oz = 0;
-             if (partType < 0.7) {
-                 // 两条主干 Backbone
-                 const t = (rand - 0.5) * tSpan;
-                 const strandOffset = (partType < 0.35) ? 0 : Math.PI;
+             
+             if (partType < 0.25) {
+                 // 1. 高密度能量内核 (Dense Energy Core)
+                 const coreR = Math.pow(rand, 0.4) * R * 0.4;
+                 const theta = rand * Math.PI * 2 + this.time * 0.8;
+                 const phi = Math.acos(2 * this.randoms[(i+2)%this.count] - 1);
+                 ox = coreR * Math.sin(phi) * Math.cos(theta);
+                 oy = coreR * Math.sin(phi) * Math.sin(theta);
+                 oz = coreR * Math.cos(phi);
+             } else if (partType < 0.75) {
+                 // 2. 发光晶格壳层 (Energy Lattice Shell)
+                 const shellR = R * 0.95 + (this.randoms[(i+3)%this.count] - 0.5) * 1.5;
+                 const theta = rand * Math.PI * 2 - this.time * 0.3;
+                 const phi = Math.acos(2 * this.randoms[(i+4)%this.count] - 1);
                  
-                 // 主链上的星团发散感
-                 const nx = (this.randoms[(i+3)%this.count] - 0.5) * 3;
-                 const ny = (this.randoms[(i+4)%this.count] - 0.5) * 3;
-                 const nz = (this.randoms[(i+5)%this.count] - 0.5) * 3;
+                 // 增加表面起伏纹理
+                 const ripple = Math.sin(phi * 10) * Math.cos(theta * 10) * 0.8;
+                 const rOffset = shellR + ripple;
+                 
+                 ox = rOffset * Math.sin(phi) * Math.cos(theta);
+                 oy = rOffset * Math.sin(phi) * Math.sin(theta);
+                 oz = rOffset * Math.cos(phi);
+             } else {
+                 // 3. 量子轨道环 (Quantum Orbitals) - 三道交叉的星环
+                 const ringIndex = Math.floor(this.randoms[(i+5)%this.count] * 3);
+                 const theta = rand * Math.PI * 2 + this.time * (1 + ringIndex * 0.4);
+                 const ringR = R * 1.4 + (this.randoms[(i+6)%this.count] - 0.5) * 1.5;
+                 
+                 const px = ringR * Math.cos(theta);
+                 const py = (this.randoms[(i+7)%this.count] - 0.5) * 0.8; // 薄环
+                 const pz = ringR * Math.sin(theta);
+                 
+                 // 三个倾角各异的轨道
+                 const tiltX = (ringIndex + 1) * Math.PI / 3;
+                 const tiltZ = ringIndex * Math.PI / 4;
+                 
+                 const tx = px * Math.cos(tiltZ) - py * Math.sin(tiltZ);
+                 const ty = px * Math.sin(tiltZ) + py * Math.cos(tiltZ);
+                 
+                 ox = tx;
+                 oy = ty * Math.cos(tiltX) - pz * Math.sin(tiltX);
+                 oz = ty * Math.sin(tiltX) + pz * Math.cos(tiltX);
+             }
+             
+             // 呼吸脉动
+             const pulse = 1 + Math.sin(this.time * 2.5 + ox * 0.1) * 0.03;
+             x = ox * pulse;
+             y = oy * pulse;
+             z = oz * pulse;
+         } else if (this.gatherShape === 'heart') {
+             // 高级宇宙星云心 (Ethereal Cosmic Heart Nebula) - 具有能量带、核心星云与外围行星环的三重结构
+             const t = rand * Math.PI * 2;
+             const partType = this.randoms[(i+1)%this.count];
+             let ox = 0, oy = 0, oz = 0;
+             
+             // 基础心形轮廓 (稍微上移以平衡视觉重心)
+             const hx = 16 * Math.pow(Math.sin(t), 3);
+             const hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t) + 2.0;
+             
+             if (partType < 0.35) {
+                 // 1. 能量带 (Energy Ribbons): 3条发光弦沿心形轨道螺旋缠绕
+                 const strand = Math.floor(this.randoms[(i+2)%this.count] * 3);
+                 const phase = strand * (Math.PI * 2 / 3); 
+                 const fuzz = (this.randoms[(i+3)%this.count] - 0.5) * 1.2;
+                 
+                 // 沿切线方向的管状膨胀与波浪
+                 const tubeRadius = 1.8;
+                 const wrapOsc = t * 6 - this.time * 2.5 + phase;
+                 const expand = Math.sin(wrapOsc) * tubeRadius;
+                 
+                 // 朝外法线方向微幅波浪
+                 const angle = Math.atan2(hy, hx);
+                 ox = hx + Math.cos(angle) * expand + fuzz; 
+                 oy = hy + Math.sin(angle) * expand + fuzz;
+                 oz = Math.cos(wrapOsc) * tubeRadius + (this.randoms[(i+4)%this.count] - 0.5) * 0.8;
+                 
+             } else if (partType < 0.70) {
+                 // 2. 星云核心 (Nebula Dust Core): 内敛的三维朦胧星体
+                 const fill = Math.pow(this.randoms[(i+2)%this.count], 0.6); // 倾向外壳分布
+                 const fuzzX = (this.randoms[(i+3)%this.count] - 0.5) * 5 * (1 - fill); // 内部粒子更散乱
+                 const fuzzY = (this.randoms[(i+4)%this.count] - 0.5) * 5 * (1 - fill);
+                 
+                 ox = hx * fill + fuzzX;
+                 oy = hy * fill + fuzzY;
+                 // 塑造饱满的立体内核，中间厚，边缘薄
+                 oz = (this.randoms[(i+5)%this.count] - 0.5) * 14 * Math.sqrt(1 - fill);
+             } else {
+                 // 3. 行星际光环 (Planetary Ring): 穿透心脏的宏大冷感星环结构
+                 const ringTheta = rand * Math.PI * 2 + this.time * 0.15;
+                 const ringR = 18 + Math.pow(this.randoms[(i+2)%this.count], 2.5) * 8; // 宽度梯度
+                 
+                 const tiltX = Math.PI / 3.5; // X轴倾斜
+                 const tiltZ = -Math.PI / 10; // Z轴倾斜
+                 
+                 const px = ringR * Math.cos(ringTheta);
+                 const py = (this.randoms[(i+3)%this.count] - 0.5) * 0.4; // 极致薄的一层
+                 const pz = ringR * Math.sin(ringTheta);
+                 
+                 // 应用3D旋转矩阵
+                 const tx = px * Math.cos(tiltZ) - py * Math.sin(tiltZ);
+                 const ty = px * Math.sin(tiltZ) + py * Math.cos(tiltZ);
+                 
+                 ox = tx;
+                 oy = ty * Math.cos(tiltX) - pz * Math.sin(tiltX) + 2.0; 
+                 oz = ty * Math.sin(tiltX) + pz * Math.cos(tiltX);
+             }
+             
+             // 赋予整体轻微的宇宙呼吸感并适配屏幕尺寸缩放
+             const pulse = 1 + Math.sin(this.time * 2.0) * 0.02;
+             const isPortrait = this.camera.aspect < 1;
+             const scaleAdjust = isPortrait ? this.camera.aspect * 1.5 : 0.95;
+             const finalScale = scaleAdjust * pulse;
+             
+             x = ox * finalScale;
+             y = oy * finalScale;
+             z = oz * finalScale;
+         } else if (this.gatherShape === 'dna') {
+             // 宇宙基因数据流 (Cosmic Genetic Data Stream)
+             const numTurns = 3.5; 
+             const radius = 6.5; 
+             const heightScale = 3.5; 
+             const tSpan = Math.PI * 2 * numTurns;
+             const twist = this.time * 1.0; 
+             
+             const partType = this.randoms[(i+2)%this.count];
+             let ox = 0, oy = 0, oz = 0;
+             
+             if (partType < 0.5) {
+                 // 1. 主干双螺旋 (Main Glowing Backbones) - 双股粗壮发光带
+                 const t = (rand - 0.5) * tSpan;
+                 const strandOffset = (partType < 0.25) ? 0 : Math.PI;
+                 
+                 // 螺旋管本身的微小盘绕
+                 const localTwist = t * 10 - this.time * 3;
+                 const localR = 1.2;
+                 const nx = Math.cos(localTwist) * localR + (this.randoms[(i+3)%this.count] - 0.5) * 1.5;
+                 const ny = (this.randoms[(i+4)%this.count] - 0.5) * 1.5;
+                 const nz = Math.sin(localTwist) * localR + (this.randoms[(i+5)%this.count] - 0.5) * 1.5;
                  
                  ox = radius * Math.cos(t + strandOffset + twist) + nx;
                  oy = t * heightScale + ny;
                  oz = radius * Math.sin(t + strandOffset + twist) + nz;
-             } else {
-                 // 中间的碱基对连接桥 (Base pairs)
-                 const numRungs = Math.floor(numTurns * 10); // 一定的离散连接层
+             } else if (partType < 0.8) {
+                 // 2. 碱基对数据桥 (Data Base Pairs) - 离散的梯级连接
+                 const numRungs = Math.floor(numTurns * 12); 
                  const rungIndex = Math.floor(this.randoms[(i+6)%this.count] * numRungs);
                  const tRung = (rungIndex / numRungs - 0.5) * tSpan;
                  
-                 // 计算端点
                  const x1 = radius * Math.cos(tRung + twist);
                  const z1 = radius * Math.sin(tRung + twist);
                  const x2 = radius * Math.cos(tRung + Math.PI + twist);
                  const z2 = radius * Math.sin(tRung + Math.PI + twist);
                  
-                 // 在两点间插值
-                 const lerp = this.randoms[(i+7)%this.count];
-                 const nx = (this.randoms[(i+8)%this.count] - 0.5) * 1.5;
-                 const ny = (this.randoms[(i+9)%this.count] - 0.5) * 1.5;
-                 const nz = (this.randoms[(i+10)%this.count] - 0.5) * 1.5;
+                 // 桥身上的能量光斑
+                 const lerp = Math.pow(this.randoms[(i+7)%this.count], 0.7); 
+                 const fuzzX = (this.randoms[(i+8)%this.count] - 0.5) * 1.0;
+                 const fuzzY = (this.randoms[(i+9)%this.count] - 0.5) * 1.0;
+                 const fuzzZ = (this.randoms[(i+10)%this.count] - 0.5) * 1.0;
                  
-                 ox = x1 + (x2 - x1) * lerp + nx;
-                 oy = tRung * heightScale + ny;
-                 oz = z1 + (z2 - z1) * lerp + nz;
+                 ox = x1 + (x2 - x1) * lerp + fuzzX;
+                 oy = tRung * heightScale + fuzzY;
+                 oz = z1 + (z2 - z1) * lerp + fuzzZ;
+             } else {
+                 // 3. 游离的mRNA星团 (Floating Nucleotide Dust) - 围绕螺旋自由飞舞
+                 const t = (rand - 0.5) * tSpan;
+                 const floatRadius = radius + 3 + this.randoms[(i+3)%this.count] * 5; 
+                 const floatAngle = rand * Math.PI * 2 + this.time * 2;
+                 
+                 ox = floatRadius * Math.cos(floatAngle);
+                 oy = t * heightScale + (this.randoms[(i+4)%this.count] - 0.5) * 8;
+                 oz = floatRadius * Math.sin(floatAngle);
              }
              
-             // 根据屏幕横竖屏旋转
-             if (this.camera.aspect >= 1) {
-                 x = oy;
-                 y = ox;
-                 z = oz;
-             } else {
-                 x = ox;
-                 y = oy;
-                 z = oz;
-             }
-         } else if (this.gatherShape === 'lemniscate') {
-             // 伯努利双扭线 (保持横向，适配屏幕大小)
-             const t = rand * Math.PI * 2 + this.time * 0.4; // 减慢流转速度
+             // 缩放适配与横竖屏处理
              const isPortrait = this.camera.aspect < 1;
-             const scaleAdjust = isPortrait ? this.camera.aspect * 0.85 : 1.0; 
+             const scaleAdjust = isPortrait ? this.camera.aspect * 1.3 : 0.85;
+             ox *= scaleAdjust; oy *= scaleAdjust; oz *= scaleAdjust;
+             
+             if (this.camera.aspect >= 1) {
+                 x = oy; y = ox; z = oz;
+             } else {
+                 x = ox; y = oy; z = oz;
+             }
+             
+         } else if (this.gatherShape === 'lemniscate') {
+             // 纯粹的伯努利双扭线 (Bernoulli Lemniscate) - 保持简洁的二维优雅
+             const t = rand * Math.PI * 2 + this.time * 0.4; 
+             const isPortrait = this.camera.aspect < 1;
+             const scaleAdjust = isPortrait ? this.camera.aspect * 1.1 : 0.95; 
              const sc = 20 * scaleAdjust;
              const denom = Math.pow(Math.sin(t), 2) + 1;
              
-             x = (sc * Math.sqrt(2) * Math.cos(t)) / denom + (this.randoms[(i+1)%this.count] - 0.5) * 3;
-             y = (sc * Math.sqrt(2) * Math.cos(t) * Math.sin(t)) / denom + (this.randoms[(i+2)%this.count] - 0.5) * 3;
-             z = (this.randoms[(i+3)%this.count] - 0.5) * 6;
+             x = (sc * Math.sqrt(2) * Math.cos(t)) / denom + (this.randoms[(i+1)%this.count] - 0.5) * 2.5;
+             y = (sc * Math.sqrt(2) * Math.cos(t) * Math.sin(t)) / denom + (this.randoms[(i+2)%this.count] - 0.5) * 2.5;
+             // 极微弱的Z轴离散度，保持纯净而生动
+             z = Math.sin(t * 4 + this.time * 2) * 1.5 + (this.randoms[(i+3)%this.count] - 0.5) * 3;
          } else if (this.gatherShape === 'rose') {
-             // k=18 玫瑰曲线 (更加精细优美，减弱速度)
-             const rotOffset = this.time * 0.1; // 整体极慢旋转
-             const theta = rand * Math.PI * 2; 
-             const k = 18;
-             const rBase = a * Math.cos(k * theta);
-             const r = rBase + (this.randoms[(i+1)%this.count] - 0.5) * 3 * Math.abs(Math.cos(k * theta)); // noise concentrated in petal body
-             
-             x = r * Math.cos(theta + rotOffset);
-             y = r * Math.sin(theta + rotOffset);
-             z = Math.sin(k * theta) * 4 + (this.randoms[(i+2)%this.count] - 0.5) * 3; // 花瓣交织的三维感
-         } else if (this.gatherShape === 'snowflake') {
-             // 更加复杂精密的雪花图案 (多层晶体分形结构)
-             const branchCount = 6;
-             const branch = Math.floor(rand * branchCount);
-             const baseAngle = (branch / branchCount) * Math.PI * 2 + this.time * 0.15; // 缓慢优雅的旋转
-             
-             // 动态缩放适配屏幕：竖屏下以宽(aspect)为基数缩放，整体进一步收缩以免出界
+             // 空灵宇宙莲花 (Ethereal Cosmic Lotus)
+             const rotOffset = this.time * 0.15; 
+             const t = rand * Math.PI * 2; 
              const isPortrait = this.camera.aspect < 1;
-             const scaleAdjust = isPortrait ? this.camera.aspect * 1.2 : 0.9;
-             const maxR = 16 * scaleAdjust; // 控制整体雪花尺寸
-             
-             let sx = 0;
-             let sy = 0;
-             let sz = 0;
+             const scaleAdjust = isPortrait ? this.camera.aspect * 1.4 : 0.9;
              
              const partType = this.randoms[(i+1)%this.count];
+             const maxR = 18 * scaleAdjust;
              
-             if (partType < 0.25) {
-                 // 1. 核心六边形冰板与星芒 (Core Hex Plate & Star)
-                 const hexDist = Math.pow(this.randoms[(i+2)%this.count], 0.8) * maxR * 0.28;
+             let ox = 0, oy = 0, oz = 0;
+             
+             if (partType < 0.15) {
+                 // 1. 发光花心 (Glowing Pistil Core)
+                 const coreR = Math.pow(this.randoms[(i+2)%this.count], 0.5) * 3 * scaleAdjust;
+                 const coreAngle = rand * Math.PI * 2;
+                 ox = coreR * Math.cos(coreAngle);
+                 oy = coreR * Math.sin(coreAngle);
+                 // 向上突起的抛物面
+                 oz = (3 - coreR) * 1.5 + (this.randoms[(i+3)%this.count] - 0.5) * 2;
+             } else if (partType < 0.85) {
+                 // 2. 多片叠加的3D花瓣 (Layered 3D Petals)
+                 // K=5 (5片主花瓣), 分内外两层
+                 const k = 5;
+                 const layer = this.randoms[(i+3)%this.count] > 0.5 ? 1 : 0.6; // 内外层大小配合
+                 const petalTheta = t;
+                 // 构造饱满的花瓣形状 (Rose curve变形)
+                 const rBase = maxR * layer * Math.abs(Math.cos(k * petalTheta / 2)); 
+                 
+                 const r = rBase * Math.pow(this.randoms[(i+4)%this.count], 0.3) + (this.randoms[(i+5)%this.count]-0.5)*1.5;
+                 
+                 ox = r * Math.cos(petalTheta + rotOffset * layer);
+                 oy = r * Math.sin(petalTheta + rotOffset * layer);
+                 
+                 // 给花瓣赋予优雅的3D曲度 (碗状开口)
+                 // r越大，z越向上翘，再在边缘稍微下降
+                 const bowl = Math.pow(r / maxR, 2) * 6;
+                 const curl = Math.sin(r / maxR * Math.PI) * 4;
+                 oz = bowl - curl + (this.randoms[(i+6)%this.count] - 0.5) * 1.5;
+                 
+                 // 外层花瓣稍微向下倾斜
+                 if (layer === 1) oz -= 3;
+                 
+             } else {
+                 // 3. 散落的花粉/星辰围绕着莲花 (Pollen Star Dust)
+                 const dustR = maxR * 0.2 + this.randoms[(i+4)%this.count] * maxR * 1.2;
+                 const dustAngle = rand * Math.PI * 2 - this.time * 0.3;
+                 ox = dustR * Math.cos(dustAngle);
+                 oy = dustR * Math.sin(dustAngle);
+                 oz = (this.randoms[(i+5)%this.count] - 0.5) * 10 + Math.sin(dustR)*3;
+             }
+             
+             // 赋予深呼吸脉动
+             const breath = 1 + Math.sin(this.time * 1.5) * 0.03;
+             x = ox * breath;
+             y = oy * breath;
+             z = oz * breath;
+         } else if (this.gatherShape === 'snowflake') {
+             // 极寒琉璃雪花 (Ethereal Glass Snowflake) - 更加通透锐利、带有悬浮冰晶的六角星芒
+             const branchCount = 6;
+             const branch = Math.floor(rand * branchCount);
+             const baseAngle = (branch / branchCount) * Math.PI * 2 + this.time * 0.1; 
+             
+             const isPortrait = this.camera.aspect < 1;
+             const scaleAdjust = isPortrait ? this.camera.aspect * 1.2 : 0.9;
+             const maxR = 17 * scaleAdjust; 
+             
+             let sx = 0, sy = 0, sz = 0;
+             const partType = this.randoms[(i+1)%this.count];
+             
+             if (partType < 0.20) {
+                 // 1. 冰心透镜 (Ice Core Lens)
+                 const hexDist = Math.pow(this.randoms[(i+2)%this.count], 0.7) * maxR * 0.25;
                  const hexAngle = rand * Math.PI * 2;
                  sx = hexDist * Math.cos(hexAngle);
                  sy = hexDist * Math.sin(hexAngle);
-                 // 向六边形边缘收拢，形成清晰结构
+                 // 强化几何切割感
                  const nearestAngle = Math.round(hexAngle / (Math.PI/3)) * (Math.PI/3);
-                 sx = sx * 0.4 + hexDist * Math.cos(nearestAngle) * 0.6;
-                 sy = sy * 0.4 + hexDist * Math.sin(nearestAngle) * 0.6;
-             } else if (partType < 0.5) {
-                 // 2. 6条主枝干 (Main Spikes)
-                 const dist = Math.pow(this.randoms[(i+2)%this.count], 1.2); 
+                 // 70% 倾向于边缘，形成中空透亮感
+                 sx = sx * 0.3 + hexDist * Math.cos(nearestAngle) * 0.7;
+                 sy = sy * 0.3 + hexDist * Math.sin(nearestAngle) * 0.7;
+                 sz = (this.randoms[(i+3)%this.count] - 0.5) * 3 * Math.sqrt(1 - hexDist/(maxR*0.25)); 
+             } else if (partType < 0.45) {
+                 // 2. 切面主枝干 (Faceted Main Spikes)
+                 const dist = Math.pow(this.randoms[(i+2)%this.count], 1.5); // 更向外抛
                  sx = dist * maxR;
-             } else {
+                 // 让主枝干有厚薄渐变，中心厚末端尖
+                 const thickness = (1 - dist) * 0.6;
+                 sy = (this.randoms[(i+3)%this.count] - 0.5) * thickness;
+                 sz = (this.randoms[(i+4)%this.count] - 0.5) * thickness * 2;
+             } else if (partType < 0.85) {
                  // 3. 多级分形侧枝 (V-shaped sub-branches)
                  // 生成3个明确的生长节点，并分配更丰富的粒子到内侧枝干
-                 const nodes = [0.35, 0.6, 0.8]; 
-                 const nodeIndex = Math.floor(Math.pow(this.randoms[(i+2)%this.count], 1.5) * nodes.length);
+                 const nodes = [0.3, 0.55, 0.8]; 
+                 const nodeIndex = Math.floor(Math.pow(this.randoms[(i+2)%this.count], 1.2) * nodes.length);
                  const nodeRatio = nodes[nodeIndex];
                  const nodePos = nodeRatio * maxR;
                  
-                 // 侧枝长度：靠近中心的较长，末端的较短 (形成菱形轮廓)
-                 const maxSubLen = (1.05 - nodeRatio) * maxR * 0.55;
+                 // 侧枝长度
+                 const maxSubLen = (1.05 - nodeRatio) * maxR * 0.5;
                  const subDist = this.randoms[(i+3)%this.count] * maxSubLen;
                  
-                 // 侧枝呈绝对的 60度 (PI/3) 夹角生长以保持完美的冰晶交角
+                 // 60度完美冰晶生长角
                  const subDir = this.randoms[(i+4)%this.count] > 0.5 ? 1 : -1;
                  const subAngle = (Math.PI / 3) * subDir;
                  
                  sx = nodePos + subDist * Math.cos(subAngle);
                  sy = subDist * Math.sin(subAngle);
                  
-                 // 20%的侧枝上再长出次级微小枝干，增加晶体细节 (Secondary tiny twigs)
-                 if (this.randoms[(i+5)%this.count] < 0.2) {
-                     const microDist = this.randoms[(i+6)%this.count] * maxSubLen * 0.3;
+                 // 二级微小枝干 (Secondary tiny twigs)
+                 if (this.randoms[(i+5)%this.count] < 0.25) {
+                     const microDist = this.randoms[(i+6)%this.count] * maxSubLen * 0.35;
                      const microDir = this.randoms[(i+7)%this.count] > 0.5 ? 1 : -1;
                      const microAngle = subAngle + (Math.PI / 3) * microDir;
                      sx += microDist * Math.cos(microAngle);
                      sy += microDist * Math.sin(microAngle);
                  }
+                 
+                 // 收紧粒子离散度
+                 sx += (this.randoms[(i+8)%this.count] - 0.5) * 0.3;
+                 sy += (this.randoms[(i+9)%this.count] - 0.5) * 0.3;
+                 sz = (this.randoms[(i+10)%this.count] - 0.5) * 1.5;
+             } else {
+                 // 4. 游离的寒霜晶粉 (Floating Frost Dust)
+                 const dustR = maxR * 0.3 + this.randoms[(i+3)%this.count] * maxR * 1.0;
+                 const dustAngle = rand * Math.PI * 2;
+                 sx = dustR * Math.cos(dustAngle);
+                 sy = dustR * Math.sin(dustAngle);
+                 sz = (this.randoms[(i+4)%this.count] - 0.5) * 8 + Math.sin(dustR - this.time*2) * 2;
+                 // 抵消 baseAngle 的旋转，使其具有独立的环绕感
+                 const inverseAngle = -baseAngle + this.time * 0.2;
+                 const tsx = sx * Math.cos(inverseAngle) - sy * Math.sin(inverseAngle);
+                 const tsy = sx * Math.sin(inverseAngle) + sy * Math.cos(inverseAngle);
+                 sx = tsx;
+                 sy = tsy;
              }
              
-             // 收紧粒子离散度，呈现锐利的结晶质感
-             const spreadX = (this.randoms[(i+8)%this.count] - 0.5) * 0.4;
-             const spreadY = (this.randoms[(i+9)%this.count] - 0.5) * 0.4;
-             sx += spreadX;
-             sy += spreadY;
+             // 冰晶闪烁起伏
+             const zRipple = Math.sin(sx * 1.5 - this.time * 2.5) * 0.5;
+             sz += zRipple;
              
-             // 纯粹的Z轴景深分散，随距中心位置和时间微微起伏闪烁
-             const zRipple = Math.sin(sx * 1.5 - this.time * 2.5) * 0.8;
-             sz = (this.randoms[(i+10)%this.count] - 0.5) * 1.5 + zRipple;
-             
-             // 旋转分布到对应的6个分支角度
+             // 应用分支旋转矩阵
              x = sx * Math.cos(baseAngle) - sy * Math.sin(baseAngle);
              y = sx * Math.sin(baseAngle) + sy * Math.cos(baseAngle);
              z = sz;
+         } else if (this.gatherShape === 'vortex') {
+             // 宇宙深渊漩涡 (Cosmic Abyss Vortex) - 面朝屏幕的宏大吸入感
+             const isPortrait = this.camera.aspect < 1;
+             const scaleAdjust = isPortrait ? this.camera.aspect * 1.5 : 1.15;
+             const maxR = 35 * scaleAdjust; // 扩大整体范围
+             
+             const partType = this.randoms[(i+1)%this.count];
+             let ox = 0, oy = 0, oz = 0;
+             
+             if (partType < 0.15) {
+                 // 1. 引力黑洞核心与事件视界 (Singularity Core & Event Horizon)
+                 // 让核心稍微有一个明显的"空洞"，然后边缘极亮
+                 const diskR = maxR * 0.02 + Math.pow(this.randoms[(i+2)%this.count], 0.4) * maxR * 0.1;
+                 const diskTheta = rand * Math.PI * 2 + this.time * 4.0; // 核心极速旋转
+                 
+                 ox = diskR * Math.cos(diskTheta);
+                 oy = diskR * Math.sin(diskTheta);
+                 // 核心极深，拉出强烈的漏斗感
+                 oz = -45 + (this.randoms[(i+3)%this.count] - 0.5) * 8; 
+                 
+             } else {
+                 // 2. 宏大旋臂与星际尘埃 (Grandiose Spiral Arms)
+                 const armCount = 6; // 增加旋臂数量让漩涡更密集
+                 const armIndex = Math.floor(rand * armCount);
+                 const armOffset = (armIndex / armCount) * Math.PI * 2;
+                 
+                 // t表示离中心的距离步长 [0, 1]，集中更多粒子在内侧
+                 const t = Math.pow(this.randoms[(i+2)%this.count], 1.6); 
+                 const r = maxR * 0.08 + t * maxR * 0.92; 
+                 
+                 // 漩涡缠绕公式 (缠绕非常深，强烈的螺旋感)
+                 const curl = (1.0 - Math.pow(t, 0.3)) * Math.PI * 10;
+                 // 差速旋转：中心风暴般极速，边缘缓慢，极大地强化被吸入的错觉
+                 const rotSpeed = 0.5 + (1 - t) * 3.5;
+                 const theta = curl + armOffset - this.time * rotSpeed;
+                 
+                 ox = r * Math.cos(theta);
+                 oy = r * Math.sin(theta);
+                 
+                 // 漏斗型深度 (Funnel Depth) - 陡峭的吸入视角
+                 const depth = -40 + Math.pow(t, 0.6) * 60; // 从 -40 陡升 到 ~20
+                 
+                 // 旋臂分散度：内侧凝聚，外侧飘散
+                 const scatter = t * maxR * 0.4;
+                 
+                 if (partType < 0.45) {
+                     // 高密度主干 (Dense Arm Core) - 贴紧旋臂
+                     ox += (this.randoms[(i+3)%this.count] - 0.5) * scatter * 0.1;
+                     oy += (this.randoms[(i+4)%this.count] - 0.5) * scatter * 0.1;
+                     oz = depth + (this.randoms[(i+5)%this.count] - 0.5) * 4;
+                 } else {
+                     // 松散星际尘埃与气体 (Loose Gas & Dust) - 扩散形成云雾感
+                     ox += (this.randoms[(i+3)%this.count] - 0.5) * scatter;
+                     oy += (this.randoms[(i+4)%this.count] - 0.5) * scatter;
+                     oz = depth + (this.randoms[(i+5)%this.count] - 0.5) * scatter * 1.2 + Math.sin(t * Math.PI * 6) * 4;
+                 }
+             }
+             
+             // 仅保留微小的倾斜，维持"正对屏幕"
+             const tiltX = Math.PI / 16; 
+             const tiltY = -Math.PI / 24;
+             
+             // Y轴旋转
+             let tx = ox * Math.cos(tiltY) - oz * Math.sin(tiltY);
+             let tz = ox * Math.sin(tiltY) + oz * Math.cos(tiltY);
+             let ty = oy;
+             
+             // X轴倾斜
+             const fx = tx;
+             const fy = ty * Math.cos(tiltX) - tz * Math.sin(tiltX);
+             const fz = ty * Math.sin(tiltX) + tz * Math.cos(tiltX);
+             
+             // 强烈的呼吸震荡与吸入吞噬效应 (脉动)
+             const pulse = 1 + Math.sin(this.time * 2.5 - Math.sqrt(fx*fx+fy*fy) * 0.1) * 0.05;
+             x = fx * pulse;
+             y = fy * pulse;
+             z = fz * pulse;
          }
          
          // Apply a very subtle sway instead of rapid spinning for frontal shapes
@@ -543,9 +804,63 @@ export class ParticleEngine {
       posArr[i3]     += this.velocities[i3];
       posArr[i3 + 1] += this.velocities[i3 + 1];
       posArr[i3 + 2] += this.velocities[i3 + 2];
+
+      // Dynamic Cosmic Colors (Cyan/Teal/Blue-green Palette)
+      const distFromCenter = Math.sqrt(posArr[i3]*posArr[i3] + posArr[i3+1]*posArr[i3+1] + posArr[i3+2]*posArr[i3+2]);
+      
+      let hue: number;
+      // Saturation generally high to make the cyan/teal pop, but varied for depth
+      let saturation = 0.5 + rand * 0.4; 
+      let lightness = 0.35 + Math.pow(Math.max(0, 1 - distFromCenter / 45), 2.5) * 0.45;
+
+      if (this.mode === 'gather') {
+          if (this.gatherShape === 'vortex') {
+              // Deep abyss: Teal to bright Cyan (0.48 - 0.55)
+              hue = 0.48 + rand * 0.07;
+              saturation = 0.6 + rand * 0.3;
+              lightness = 0.2 + Math.pow(Math.max(0, 1 - distFromCenter / 50), 4) * 0.8; 
+          } else if (this.gatherShape === 'rose') {
+              // Ethereal glowing azure & cyan (0.5 - 0.58)
+              hue = 0.52 + (distFromCenter * 0.005) + rand * 0.06;
+          } else if (this.gatherShape === 'heart') {
+              // Deep marine teal to aquamarine (0.45 - 0.52)
+              hue = 0.45 + rand * 0.07;
+              saturation = 0.7 + rand * 0.2;
+          } else if (this.gatherShape === 'snowflake') {
+              // Ghostly icy cyan with white core (0.5 - 0.55)
+              hue = 0.52 + rand * 0.03;
+              saturation = 0.3 + rand * 0.2;
+              lightness = 0.6 + Math.pow(Math.max(0, 1 - distFromCenter / 30), 2) * 0.4;
+          } else if (this.gatherShape === 'dna') {
+              // Bright bioluminescent cyan/emerald (0.45 - 0.52)
+              hue = 0.48 + rand * 0.04;
+              saturation = 0.65 + rand * 0.25;
+          } else if (this.gatherShape === 'sphere') {
+              // Astral cyan and deep sea blue mix (0.5 - 0.6)
+              hue = (rand > 0.5) ? 0.52 : 0.58;
+              saturation = 0.5 + rand * 0.3;
+          } else if (this.gatherShape === 'lemniscate') {
+              // Deep twilight teal (0.48 - 0.56)
+              hue = 0.50 + rand * 0.06;
+              saturation = 0.55 + rand * 0.3;
+          } else {
+              hue = 0.5 + rand * 0.05;
+          }
+      } else {
+          // Nebula or Follow mode: Deep mysterious dark cyan ocean
+          hue = 0.50 + rand * 0.08; 
+          saturation = 0.6 + rand * 0.3; 
+          lightness = 0.25 + Math.pow(Math.max(0, 1 - distFromCenter / 45), 2) * 0.4 + (Math.sin(this.time * 1.5 + rand * 10) * 0.1);
+      }
+
+      tempColor.setHSL((hue % 1.0 + 1.0) % 1.0, saturation, Math.min(1.0, lightness));
+      colorArr[i3] = tempColor.r;
+      colorArr[i3 + 1] = tempColor.g;
+      colorArr[i3 + 2] = tempColor.b;
     }
 
     posAttr.needsUpdate = true;
+    colorAttr.needsUpdate = true;
     this.renderer.render(this.scene, this.camera);
   }
 
