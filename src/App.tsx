@@ -30,6 +30,7 @@ const ANSWERS = [
 ];
 
 export default function App() {
+  const bgmUrl = `${import.meta.env.BASE_URL}bgm.mp3`;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const engineRef = useRef<ParticleEngine | null>(null);
