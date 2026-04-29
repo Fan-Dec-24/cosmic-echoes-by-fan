@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { ParticleEngine } from './ParticleEngine';
 import { HandState, HandTracker } from './HandTracker';
-
-const bgmUrl = '/bgm.mp3';
+import bgmUrl from './assets/bgm.mp3';
 
 const ANSWERS = [
   "毫无疑问", 
@@ -30,7 +29,6 @@ const ANSWERS = [
 ];
 
 export default function App() {
-  const bgmUrl = `${import.meta.env.BASE_URL}bgm.mp3`;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const engineRef = useRef<ParticleEngine | null>(null);
@@ -46,15 +44,25 @@ export default function App() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const [audioDebug, setAudioDebug] = useState<string>("");
 
   useEffect(() => {
+    // Initialize audio directly
+    if (!audioRef.current) {
+      const a = new Audio();
+      // Use standard import variable
+      a.src = bgmUrl;
+      a.loop = true;
+      a.preload = "auto";
+      audioRef.current = a;
+    }
+
     const handleGlobalInteract = () => {
       setHasInteracted(true);
       if (audioRef.current && audioRef.current.paused) {
         audioRef.current.volume = 0.5;
-        audioRef.current.play().catch((err) => {
-          setAudioDebug(String(err));
+        audioRef.current.play().then(() => {
+          setIsPlaying(true);
+        }).catch((err) => {
           console.log("Audio play failed:", err);
         });
       }
@@ -195,7 +203,7 @@ export default function App() {
             setHasInteracted(true);
             if (audioRef.current && audioRef.current.paused) {
               audioRef.current.volume = 0.5;
-              audioRef.current.play().catch((e) => console.log('Audio autoplay failed:', e));
+              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
             }
           }}
         >
@@ -224,21 +232,17 @@ export default function App() {
       </header>
 
       {/* Music Toggle */}
-      <div className="absolute top-6 right-6 z-50 flex flex-col items-end gap-2">
-        {audioDebug && (
-          <div className="bg-red-500/20 text-red-200 text-[10px] p-2 rounded max-w-[200px] break-words border border-red-500/50">
-            {audioDebug}
-          </div>
-        )}
+      <div className="absolute top-6 right-6 z-50">
         <button
           onClick={(e) => {
             e.stopPropagation();
             if (audioRef.current) {
-              if (audioRef.current.paused) {
-                audioRef.current.volume = 0.5;
-                audioRef.current.play().catch((err) => setAudioDebug(String(err)));
-              } else {
+              if (isPlaying) {
                 audioRef.current.pause();
+                setIsPlaying(false);
+              } else {
+                audioRef.current.volume = 0.5;
+                audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
               }
             }
           }}
@@ -320,21 +324,6 @@ export default function App() {
                 FAN
               </div>
             </div>
-          </div>
-
-          {/* Audio Element */}
-          <div className="absolute top-20 right-6 z-50 pointer-events-auto">
-            <audio 
-              ref={audioRef} 
-              src={bgmUrl} 
-              loop 
-              preload="auto" 
-              playsInline 
-              controls
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onEnded={() => setIsPlaying(false)}
-            />
           </div>
         </div>
       </footer>
