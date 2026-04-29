@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { ParticleEngine } from './ParticleEngine';
 import { HandState, HandTracker } from './HandTracker';
-
-const bgmUrl = '/bgm.mp3';
+import bgmUrl from './assets/bgm.mp3';
 
 const ANSWERS = [
   "毫无疑问", 
@@ -45,7 +44,6 @@ export default function App() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const [audioDebug, setAudioDebug] = useState<string>("");
 
   useEffect(() => {
     const handleGlobalInteract = () => {
@@ -53,7 +51,6 @@ export default function App() {
       if (audioRef.current && audioRef.current.paused) {
         audioRef.current.volume = 0.5;
         audioRef.current.play().catch((err) => {
-          setAudioDebug(String(err));
           console.log("Audio play failed:", err);
         });
       }
@@ -224,18 +221,13 @@ export default function App() {
 
       {/* Music Toggle */}
       <div className="absolute top-6 right-6 z-50 flex flex-col items-end gap-2">
-        {audioDebug && (
-          <div className="bg-red-500/20 text-red-200 text-[10px] p-2 rounded max-w-[200px] break-words border border-red-500/50">
-            {audioDebug}
-          </div>
-        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
             if (audioRef.current) {
               if (audioRef.current.paused) {
                 audioRef.current.volume = 0.5;
-                audioRef.current.play().catch((err) => setAudioDebug(String(err)));
+                audioRef.current.play().catch(() => {});
               } else {
                 audioRef.current.pause();
               }
@@ -322,19 +314,17 @@ export default function App() {
           </div>
 
           {/* Audio Element */}
-          <div className="absolute top-20 right-6 z-50 pointer-events-auto">
-            <audio 
-              ref={audioRef} 
-              src={bgmUrl} 
-              loop 
-              preload="auto" 
-              playsInline 
-              controls
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onEnded={() => setIsPlaying(false)}
-            />
-          </div>
+          <audio 
+            ref={audioRef} 
+            src={bgmUrl} 
+            loop 
+            preload="auto" 
+            playsInline 
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+            className="hidden" 
+          />
         </div>
       </footer>
     </div>
