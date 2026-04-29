@@ -44,21 +44,33 @@ export default function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
-    // Attempt to play audio on first user interaction
+    // Attempt to play audio on user interaction
     const handleInteract = () => {
       setHasInteracted(true);
       if (audioRef.current && audioRef.current.paused) {
         audioRef.current.volume = 0.5;
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            setIsPlaying(true);
+            document.removeEventListener('click', handleInteract);
+            document.removeEventListener('touchstart', handleInteract);
+            document.removeEventListener('touchend', handleInteract);
+          }).catch((err) => {
+            console.log("Audio play failed, will retry on next interaction:", err);
+          });
+        }
       }
     };
     
-    document.addEventListener('click', handleInteract, { once: true });
-    document.addEventListener('touchstart', handleInteract, { once: true });
+    document.addEventListener('click', handleInteract);
+    document.addEventListener('touchstart', handleInteract);
+    document.addEventListener('touchend', handleInteract);
 
     return () => {
       document.removeEventListener('click', handleInteract);
       document.removeEventListener('touchstart', handleInteract);
+      document.removeEventListener('touchend', handleInteract);
     };
   }, []);
 
