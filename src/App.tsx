@@ -3,6 +3,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { ParticleEngine } from './ParticleEngine';
 import { HandState, HandTracker } from './HandTracker';
 import bgmUrl from './assets/bgm.mp3';
+import { Howl } from 'howler';
 
 const ANSWERS = [
   "毫无疑问", 
@@ -41,12 +42,43 @@ export default function App() {
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const bgmRef = useRef<Howl | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
-    // Has interacted is handled by the overlay click directly
+    bgmRef.current = new Howl({
+      src: [bgmUrl],
+      loop: true,
+      volume: 0.5,
+      html5: false, // Force Web Audio API to bypass iOS mute switch
+      html5PoolSize: 0,
+      onloaderror: (id, err) => console.error("Howl load error:", err),
+      onplayerror: (id, err) => {
+        console.error("Howl play error:", err);
+        bgmRef.current?.once('unlock', () => {
+          bgmRef.current?.play();
+          setIsPlaying(true);
+        });
+      }
+    });
+
+    const handleGlobalInteract = () => {
+      setHasInteracted(true);
+      if (bgmRef.current && !bgmRef.current.playing()) {
+        bgmRef.current.play();
+        setIsPlaying(true);
+      }
+    };
+
+    document.addEventListener('click', handleGlobalInteract, { once: true });
+    document.addEventListener('touchstart', handleGlobalInteract, { once: true });
+
+    return () => {
+      document.removeEventListener('click', handleGlobalInteract);
+      document.removeEventListener('touchstart', handleGlobalInteract);
+      bgmRef.current?.unload();
+    };
   }, []);
 
   const gatherStartTimeRef = useRef<number>(0);
@@ -172,16 +204,9 @@ export default function App() {
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-1000 px-4 cursor-pointer"
           onClick={() => {
             setHasInteracted(true);
-            if (audioRef.current) {
-              audioRef.current.volume = 0.5;
-              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
-            }
-          }}
-          onTouchEnd={() => {
-            setHasInteracted(true);
-            if (audioRef.current) {
-              audioRef.current.volume = 0.5;
-              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
+            if (bgmRef.current && !bgmRef.current.playing()) {
+              bgmRef.current.play();
+              setIsPlaying(true);
             }
           }}
         >
@@ -214,30 +239,13 @@ export default function App() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (audioRef.current) {
+            if (bgmRef.current) {
               if (isPlaying) {
-                audioRef.current.pause();
+                bgmRef.current.pause();
                 setIsPlaying(false);
               } else {
-                audioRef.current.volume = 0.5;
-                audioRef.current.play()
-                  .then(() => setIsPlaying(true))
-                  .catch(() => {});
-              }
-            }
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (audioRef.current) {
-              if (isPlaying) {
-                audioRef.current.pause();
-                setIsPlaying(false);
-              } else {
-                audioRef.current.volume = 0.5;
-                audioRef.current.play()
-                  .then(() => setIsPlaying(true))
-                  .catch(() => {});
+                bgmRef.current.play();
+                setIsPlaying(true);
               }
             }
           }}
@@ -320,8 +328,6 @@ export default function App() {
               </div>
             </div>
           </div>
-
-          <audio ref={audioRef} src={bgmUrl} loop preload="auto" style={{ display: 'none' }} />
         </div>
       </footer>
     </div>
