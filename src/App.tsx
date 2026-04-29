@@ -256,7 +256,7 @@ export default function App() {
             {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           </button>
           
-          <audio ref={audioRef} src="/bgm.mp3" loop preload="auto" style={{ display: 'none' }} />
+          <audio ref={audioRef} src="./bgm.mp3" loop preload="auto" style={{ display: 'none' }} />
 
           <div className="text-[8px] sm:text-[9px] tracking-widest text-cyan-100/30 font-extralight uppercase mt-1">
             CREATED BY FAN
