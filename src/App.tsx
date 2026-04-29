@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { ParticleEngine } from './ParticleEngine';
 import { HandState, HandTracker } from './HandTracker';
+import bgmUrl from './assets/bgm.mp3';
 
 const ANSWERS = [
   "毫无疑问", 
@@ -316,7 +317,7 @@ export default function App() {
             </div>
           </div>
 
-          <audio ref={audioRef} src={`${import.meta.env.BASE_URL}bgm.mp3`} loop preload="auto" style={{ display: 'none' }} />
+          <audio ref={audioRef} src={bgmUrl} loop preload="auto" style={{ display: 'none' }} />
         </div>
       </footer>
     </div>
