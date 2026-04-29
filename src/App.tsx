@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { ParticleEngine } from './ParticleEngine';
 import { HandState, HandTracker } from './HandTracker';
-import bgmUrl from './assets/bgm.mp3';
+
+const bgmUrl = '/bgm.mp3';
 
 const ANSWERS = [
   "毫无疑问", 
