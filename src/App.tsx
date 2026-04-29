@@ -46,34 +46,7 @@ export default function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
-    // Attempt to play audio on user interaction
-    const handleInteract = () => {
-      setHasInteracted(true);
-      if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.volume = 0.5;
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            setIsPlaying(true);
-            document.removeEventListener('click', handleInteract);
-            document.removeEventListener('touchstart', handleInteract);
-            document.removeEventListener('touchend', handleInteract);
-          }).catch((err) => {
-            console.log("Audio play failed, will retry on next interaction:", err);
-          });
-        }
-      }
-    };
-    
-    document.addEventListener('click', handleInteract);
-    document.addEventListener('touchstart', handleInteract);
-    document.addEventListener('touchend', handleInteract);
-
-    return () => {
-      document.removeEventListener('click', handleInteract);
-      document.removeEventListener('touchstart', handleInteract);
-      document.removeEventListener('touchend', handleInteract);
-    };
+    // Has interacted is handled by the overlay click directly
   }, []);
 
   const gatherStartTimeRef = useRef<number>(0);
@@ -195,8 +168,24 @@ export default function App() {
 
       {/* Touch to start prompt overlay */}
       {!hasInteracted && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none transition-opacity duration-1000 px-4">
-          <p className="text-white/80 text-xs sm:text-sm tracking-[0.3em] font-light uppercase animate-pulse text-center w-full">
+        <div 
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-1000 px-4 cursor-pointer"
+          onClick={() => {
+            setHasInteracted(true);
+            if (audioRef.current) {
+              audioRef.current.volume = 0.5;
+              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
+            }
+          }}
+          onTouchEnd={() => {
+            setHasInteracted(true);
+            if (audioRef.current) {
+              audioRef.current.volume = 0.5;
+              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
+            }
+          }}
+        >
+          <p className="text-white/80 text-xs sm:text-sm tracking-[0.3em] font-light uppercase animate-pulse text-center w-full pointer-events-none">
             Touch to awaken the cosmos
           </p>
         </div>
@@ -237,7 +226,22 @@ export default function App() {
               }
             }
           }}
-          className="p-2 rounded-full border border-cyan-200/20 text-cyan-100/40 hover:bg-cyan-900/30 hover:border-cyan-400/50 hover:text-cyan-50 transition-all duration-300"
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (audioRef.current) {
+              if (isPlaying) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+              } else {
+                audioRef.current.volume = 0.5;
+                audioRef.current.play()
+                  .then(() => setIsPlaying(true))
+                  .catch(() => {});
+              }
+            }
+          }}
+          className="p-2 rounded-full border border-cyan-200/20 text-cyan-100/40 hover:bg-cyan-900/30 hover:border-cyan-400/50 hover:text-cyan-50 transition-all duration-300 pointer-events-auto"
         >
           {isPlaying ? <Volume2 size={16} /> : <VolumeX size={16} />}
         </button>
