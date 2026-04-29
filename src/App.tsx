@@ -46,16 +46,6 @@ export default function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
-    // Initialize audio directly
-    if (!audioRef.current) {
-      const a = new Audio();
-      // Use standard import variable
-      a.src = bgmUrl;
-      a.loop = true;
-      a.preload = "auto";
-      audioRef.current = a;
-    }
-
     const handleGlobalInteract = () => {
       setHasInteracted(true);
       if (audioRef.current && audioRef.current.paused) {
@@ -325,6 +315,9 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          {/* Audio Element */}
+          <audio ref={audioRef} src={bgmUrl} loop preload="auto" playsInline style={{ display: 'none' }} />
         </div>
       </footer>
     </div>
