@@ -50,9 +50,7 @@ export default function App() {
       setHasInteracted(true);
       if (audioRef.current && audioRef.current.paused) {
         audioRef.current.volume = 0.5;
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-        }).catch((err) => {
+        audioRef.current.play().catch((err) => {
           console.log("Audio play failed:", err);
         });
       }
@@ -193,7 +191,7 @@ export default function App() {
             setHasInteracted(true);
             if (audioRef.current && audioRef.current.paused) {
               audioRef.current.volume = 0.5;
-              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
+              audioRef.current.play().catch((e) => console.log('Audio autoplay failed:', e));
             }
           }}
         >
@@ -227,12 +225,11 @@ export default function App() {
           onClick={(e) => {
             e.stopPropagation();
             if (audioRef.current) {
-              if (isPlaying) {
-                audioRef.current.pause();
-                setIsPlaying(false);
-              } else {
+              if (audioRef.current.paused) {
                 audioRef.current.volume = 0.5;
-                audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+                audioRef.current.play().catch(() => {});
+              } else {
+                audioRef.current.pause();
               }
             }
           }}
@@ -317,7 +314,17 @@ export default function App() {
           </div>
 
           {/* Audio Element */}
-          <audio ref={audioRef} src={bgmUrl} loop preload="auto" playsInline style={{ display: 'none' }} />
+          <audio 
+            ref={audioRef} 
+            src={bgmUrl} 
+            loop 
+            preload="auto" 
+            playsInline 
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+            className="hidden" 
+          />
         </div>
       </footer>
     </div>
