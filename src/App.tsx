@@ -41,16 +41,26 @@ export default function App() {
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
+    // Initialize audio directly
+    if (!audioRef.current) {
+      const a = new Audio();
+      // Use standard import variable
+      a.src = bgmUrl;
+      a.loop = true;
+      a.preload = "auto";
+      audioRef.current = a;
+    }
+
     const handleGlobalInteract = () => {
       setHasInteracted(true);
-      const audio = document.getElementById('bgm-player') as HTMLAudioElement;
-      if (audio && audio.paused) {
-        audio.volume = 0.5;
-        audio.play().then(() => {
+      if (audioRef.current && audioRef.current.paused) {
+        audioRef.current.volume = 0.5;
+        audioRef.current.play().then(() => {
           setIsPlaying(true);
         }).catch((err) => {
           console.log("Audio play failed:", err);
@@ -191,10 +201,9 @@ export default function App() {
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-1000 px-4 cursor-pointer"
           onClick={() => {
             setHasInteracted(true);
-            const audio = document.getElementById('bgm-player') as HTMLAudioElement;
-            if (audio && audio.paused) {
-              audio.volume = 0.5;
-              audio.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
+            if (audioRef.current && audioRef.current.paused) {
+              audioRef.current.volume = 0.5;
+              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
             }
           }}
         >
@@ -227,14 +236,13 @@ export default function App() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            const audio = document.getElementById('bgm-player') as HTMLAudioElement;
-            if (audio) {
+            if (audioRef.current) {
               if (isPlaying) {
-                audio.pause();
+                audioRef.current.pause();
                 setIsPlaying(false);
               } else {
-                audio.volume = 0.5;
-                audio.play().then(() => setIsPlaying(true)).catch(() => {});
+                audioRef.current.volume = 0.5;
+                audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
               }
             }
           }}
@@ -317,8 +325,6 @@ export default function App() {
               </div>
             </div>
           </div>
-          
-          <audio id="bgm-player" src={bgmUrl} loop preload="auto" playsInline style={{ display: 'none' }} />
         </div>
       </footer>
     </div>
