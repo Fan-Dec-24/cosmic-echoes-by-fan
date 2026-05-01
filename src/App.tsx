@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Howl } from 'howler';
 import { ParticleEngine } from './ParticleEngine';
 import { HandState, HandTracker } from './HandTracker';
 import bgmUrl from './assets/bgm.mp3';
@@ -40,17 +41,24 @@ export default function App() {
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const bgmRef = useRef<Howl | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
+    // Initialize Howl audio object
+    if (!bgmRef.current) {
+      bgmRef.current = new Howl({
+        src: [bgmUrl],
+        loop: true,
+        volume: 0.5,
+        preload: true,
+      });
+    }
+
     const handleGlobalInteract = () => {
       setHasInteracted(true);
-      if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.volume = 0.5;
-        audioRef.current.play().catch((err) => {
-          console.log("Audio play failed:", err);
-        });
+      if (bgmRef.current && !bgmRef.current.playing()) {
+        bgmRef.current.play();
       }
     };
 
@@ -186,9 +194,8 @@ export default function App() {
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-1000 px-4 cursor-pointer"
           onClick={() => {
             setHasInteracted(true);
-            if (audioRef.current && audioRef.current.paused) {
-               audioRef.current.volume = 0.5;
-               audioRef.current.play().catch((e) => console.log('Audio autoplay failed:', e));
+            if (bgmRef.current && !bgmRef.current.playing()) {
+               bgmRef.current.play();
             }
           }}
         >
@@ -291,9 +298,6 @@ export default function App() {
           </div>
         </div>
       </footer>
-
-      {/* Audio Element */}
-      <audio ref={audioRef} src={bgmUrl} loop preload="auto" playsInline style={{ display: 'none' }} />
     </div>
   );
 }
