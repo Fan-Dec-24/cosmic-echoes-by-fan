@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
 import { ParticleEngine } from './ParticleEngine';
 import { HandState, HandTracker } from './HandTracker';
 import bgmUrl from './assets/bgm.mp3';
@@ -42,35 +41,21 @@ export default function App() {
   const [isCameraActive, setIsCameraActive] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
-    // Initialize audio directly
-    if (!audioRef.current) {
-      const a = new Audio();
-      // Use standard import variable
-      a.src = bgmUrl;
-      a.loop = true;
-      a.preload = "auto";
-      audioRef.current = a;
-    }
-
     const handleGlobalInteract = () => {
       setHasInteracted(true);
       if (audioRef.current && audioRef.current.paused) {
         audioRef.current.volume = 0.5;
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-        }).catch((err) => {
+        audioRef.current.play().catch((err) => {
           console.log("Audio play failed:", err);
         });
       }
     };
 
-    document.addEventListener('click', handleGlobalInteract, { once: true });
-    // Using touchend as it's more reliably treated as a trusted interaction on iOS
-    document.addEventListener('touchend', handleGlobalInteract, { once: true });
+    document.addEventListener('click', handleGlobalInteract);
+    document.addEventListener('touchend', handleGlobalInteract);
 
     return () => {
       document.removeEventListener('click', handleGlobalInteract);
@@ -202,8 +187,8 @@ export default function App() {
           onClick={() => {
             setHasInteracted(true);
             if (audioRef.current && audioRef.current.paused) {
-              audioRef.current.volume = 0.5;
-              audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.log('Audio autoplay failed:', e));
+               audioRef.current.volume = 0.5;
+               audioRef.current.play().catch((e) => console.log('Audio autoplay failed:', e));
             }
           }}
         >
@@ -230,27 +215,6 @@ export default function App() {
         <h1 className="text-sm sm:text-base tracking-[0.6em] font-extralight text-cyan-50 opacity-60 uppercase mb-3 drop-shadow-lg">Cosmic Echoes</h1>
         <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent"></div>
       </header>
-
-      {/* Music Toggle */}
-      <div className="absolute top-6 right-6 z-50">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (audioRef.current) {
-              if (isPlaying) {
-                audioRef.current.pause();
-                setIsPlaying(false);
-              } else {
-                audioRef.current.volume = 0.5;
-                audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-              }
-            }
-          }}
-          className="p-2 rounded-full border border-cyan-200/20 text-cyan-100/40 hover:bg-cyan-900/30 hover:border-cyan-400/50 hover:text-cyan-50 transition-all duration-300 pointer-events-auto"
-        >
-          {isPlaying ? <Volume2 size={16} /> : <VolumeX size={16} />}
-        </button>
-      </div>
 
       {/* Main Answer Display */}
       <main className="absolute inset-0 flex items-center justify-center z-30 px-6 sm:px-32 pointer-events-none">
@@ -327,6 +291,9 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Audio Element */}
+      <audio ref={audioRef} src={bgmUrl} loop preload="auto" playsInline style={{ display: 'none' }} />
     </div>
   );
 }
