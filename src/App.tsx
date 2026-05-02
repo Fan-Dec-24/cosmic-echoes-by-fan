@@ -297,7 +297,7 @@ export default function App() {
 
       {/* Audio Element */}
       <audio ref={audioRef} loop preload="auto" playsInline style={{ display: 'none' }}>
-        <source src={`${bgmUrl}?t=1`} type="audio/mpeg" />
+        <source src={bgmUrl} type="audio/mpeg" />
       </audio>
     </div>
   );
