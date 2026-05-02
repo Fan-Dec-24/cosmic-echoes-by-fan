@@ -191,6 +191,14 @@ export default function App() {
                audioRef.current.play().catch((e) => console.log('Audio autoplay failed:', e));
             }
           }}
+          onTouchEnd={(e) => {
+            e.preventDefault(); // Prevents simulated click from firing twice
+            setHasInteracted(true);
+            if (audioRef.current && audioRef.current.paused) {
+               audioRef.current.volume = 0.5;
+               audioRef.current.play().catch((e) => console.log('Audio autoplay failed:', e));
+            }
+          }}
         >
           <p className="text-white/80 text-xs sm:text-sm tracking-[0.3em] font-light uppercase animate-pulse text-center w-full pointer-events-none">
             Touch to awaken the cosmos
@@ -221,9 +229,6 @@ export default function App() {
         {appState === 'revealing' && (
           <div className="animate-fade-zoom w-full max-w-3xl flex flex-col items-center mt-8">
             <div className="relative flex justify-center items-center w-full min-h-[30vh] sm:min-h-0 px-8 sm:px-16">
-              {/* Subtle glowing brackets to frame the text */}
-              <span className="absolute -left-2 sm:-left-16 top-0 text-cyan-500/30 text-5xl sm:text-7xl font-serif font-extralight select-none">「</span>
-              
               <p 
                 className="text-xl sm:text-3xl md:text-4xl font-serif text-cyan-50 font-light text-center tracking-[0.1em] sm:tracking-[0.1em] leading-[2.2] sm:leading-loose px-2 w-full break-words"
                 style={{ 
@@ -232,8 +237,6 @@ export default function App() {
               >
                 {currentAnswer}
               </p>
-
-              <span className="absolute -right-2 sm:-right-16 bottom-0 text-cyan-500/30 text-5xl sm:text-7xl font-serif font-extralight select-none">」</span>
             </div>
 
             <div className="mt-8 sm:mt-16 flex justify-center w-full px-4">
