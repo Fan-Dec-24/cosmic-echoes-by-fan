@@ -296,7 +296,9 @@ export default function App() {
       </footer>
 
       {/* Audio Element */}
-      <audio ref={audioRef} src={bgmUrl} loop preload="auto" playsInline style={{ display: 'none' }} />
+      <audio ref={audioRef} loop preload="auto" playsInline style={{ display: 'none' }}>
+        <source src={`${bgmUrl}?t=1`} type="audio/mpeg" />
+      </audio>
     </div>
   );
 }
